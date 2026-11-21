@@ -4,7 +4,7 @@ Sistem IoT complet automatizat pentru monitorizarea umidității solului și ges
 
 ---
 
-##  Caracteristici principale
+## Caracteristici principale
 * **Automatizare inteligentă:** Activare pompă pe bază de prag critic cu timp de siguranță (**15s Cooldown**) pentru prevenirea inundării plantei.
 * **Server Web HTTP Integrat:** Interfață web interactivă (HTML/CSS/JS) cu design Dark Mode și actualizare asincronă (**AJAX / Fetch API**) la fiecare secundă.
 * **Interfață Fizică Locală:** Ecran OLED SSD1306 cu fonturi grafice personalizate, 4 pagini de stare și butoane pentru navigare meniu / udare manuală instantă.
@@ -19,14 +19,14 @@ Sistem IoT complet automatizat pentru monitorizarea umidității solului și ges
 | **Senzor Umiditate Sol** | GPIO 26 / ADC0 | Intrare Analogică (Măsurare directă) |
 | **Ecran OLED (SDA)** | GPIO 16 | I2C0 Data (Interfață locală) |
 | **Ecran OLED (SCL)** | GPIO 17 | I2C0 Clock (Interfață locală) |
-| **Buton Meniu (Pagini)**| GPIO 14 | Intrare Digitală (Pull-Up Intern) |
+| **Buton Meniu (Pagini)** | GPIO 14 | Intrare Digitală (Pull-Up Intern) |
 | **Buton Udare Manuală** | GPIO 15 | Intrare Digitală (Pull-Up Intern) |
 | **Modul Releu (Pompă)** | GPIO 18 | Ieșire Digitală (Actuator Putere) |
 | **LED Placă Integrat** | Cyw43 LED | Semnalizare Stare Pompă (ON/OFF) |
 
 ---
 
-##  Arhitectură Software
+## Arhitectură Software
 Sistemul este complet reactiv și rulează *non-blocking*. Controlul timpilor de funcționare și ferestrele de cooldown se realizează prin structuri `absolute_time_t` și verificări de tip `time_reached`, asigurând stabilitatea stivei de rețea fără întreruperi blocate în execuție.
 
 * **Stivă Rețea:** lwIP (Lightweight IP) configurată în mod polling (`pico_cyw43_arch_lwip_poll`).
@@ -37,9 +37,6 @@ Sistemul este complet reactiv și rulează *non-blocking*. Controlul timpilor de
   * `GET /water?time=X` -> Declanșează pompa web timp de 3 secunde și înregistrează timestamp-ul.
   * `GET /time?now=X` -> Sincronizează în background string-ul de timp trimis de browser.
 
-
----
-
 ---
 
 ## Descrierea și Funcționarea Interfeței Web
@@ -48,41 +45,44 @@ Sistemul integrează un server web HTTP capabil să deservească o pagină inter
 
 ### Elemente Vizuale și Control
 Interfața include:
-1.  **Indicatorul Istoric ("Ultima udare"):** Afișează data și ora exactă la care pompa a fost activată ultima dată.
-2.  **Monitorizare în Timp Real ("Nivel umiditate"):** Un bloc dinamic ce afișează procentul curent de apă din sol, actualizat automat secundă de secundă.
-3.  **Configurare Dinamică ("Udare automata sub"):** Un element de tip glisor (`input type="range"`) care îi permite utilizatorului să modifice pragul critic de umiditate între $0\%$ și $100\%$.
-4.  **Buton Manual ("UDA ACUM"):** Un buton tactil de mari dimensiuni care pornește forțat pompa de apă timp de 3 secunde. În timpul activării, textul butonului se schimbă în `UDA...` și devine inactiv pentru a preveni dubla apăsare.
-5.  **Status Pompă:** Un indicator colorat (*Verde* pentru `ON`, *Roșu* pentru `OFF`) care reflectă starea electrică instantanee a releului.
+1. **Indicatorul Istoric ("Ultima udare"):** Afișează data și ora exactă la care pompa a fost activată ultima dată.
+2. **Monitorizare în Timp Real ("Nivel umiditate"):** Un bloc dinamic ce afișează procentul curent de apă din sol, actualizat automat secundă de secundă.
+3. **Configurare Dinamică ("Udare automata sub"):** Un element de tip glisor (`input type="range"`) care îi permite utilizatorului să modifice pragul critic de umiditate între 0% și 100%.
+4. **Buton Manual ("UDA ACUM"):** Un buton tactil de mari dimensiuni care pornește forțat pompa de apă timp de 3 secunde. În timpul activării, textul butonului se schimbă în `UDA...` și devine inactiv pentru a preveni dubla apăsare.
+5. **Status Pompă:** Un indicator colorat (*Verde* pentru `ON`, *Roșu* pentru `OFF`) care reflectă starea electrică instantanee a releului.
 
 ### Mecanismul de Sincronizare și AJAX (Fetch API)
-Pentru a asigura o experiență fluidă și fluidizarea traficului de rețea, interfața web folosește scripturi **JavaScript asincrone** care rulează în fundalul browserului:
+Pentru a asigura o experiență fluidă și un trafic de rețea redus, interfața web folosește scripturi **JavaScript asincrone** care rulează în fundalul browserului:
 
 * **Rutina `updateStatus()` (Frecvență: 1Hz):** La fiecare secundă, browserul trimite o cerere asincronă de tip `fetch('/status')`. Serverul de pe Pico 2 W răspunde instant cu un pachet de date în format **JSON**. Scriptul JavaScript extrage valorile și modifică selectiv elementele din pagină (DOM) fără a reîncărca întreaga structură HTML.
-* **Virtual RTC și Sincronizarea `syncTime()`:** Deoarece Raspberry Pi Pico 2 W nu dispune de un modul hardware pentru menținerea orei reale (RTC) în caz de blackout, sistemul folosește o soluție software ingenioasă. La încărcarea paginii și apoi la fiecare secundă, browserul trimite ora sa locală către placa de dezvoltare prin apelul `fetch('/time?now=...')`. Stringul decodificat de funcția `decode_url_time()` este stocat în memoria RAM a plăcii și este folosit ca timestamp oficial pentru marcarea momentului în care se face udarea (atât cea manuală, cât și cea automată).
+* **Virtual RTC și Sincronizarea `syncTime()`:** Deoarece Raspberry Pi Pico 2 W nu dispune de un modul hardware pentru menținerea orei reale (RTC) în caz de blackout, sistemul folosește o soluție software. La încărcarea paginii și apoi la fiecare secundă, browserul trimite ora sa locală către placa de dezvoltare prin apelul `fetch('/time?now=...')`. Stringul decodificat de funcția `decode_url_time()` este stocat în memoria RAM a plăcii și este folosit ca timestamp oficial pentru marcarea momentului în care se face udarea (atât cea manuală, cât și cea automată).
 * **Modificarea Pragului (`setLimit()`):** În momentul în care utilizatorul mișcă glisorul pe ecran, evenimentul `oninput` declanșează instant un apel de tip `fetch('/setlimit?value=' + v)`. Microcontrolerul interceptează valoarea, o convertește prin funcția `atoi()` și actualizează variabila globală `auto_water_percent`, modificând comportamentul automatizării în timp real.
+
+---
 
 ## Diagrame și Modelare Sistem
 
 ### 1. Diagrama de Activități (Activity Diagram)
 Descrie interacțiunile actorilor externi (Utilizatorul Web și Solul ca mediu fizic) cu modulele logice ale sistemului de irigație.
 
-<img width="1568" height="1065" alt="diagrama-activitati" src="https://github.tuiasi.ro/user-attachments/assets/44d048b0-c5d8-4ad8-b318-353e83c5419d" />
+<img src="images/diagrama-activitati.png" width="800" alt="Diagrama de activități" />
 
 ### 2. Diagrama de Cazuri de Utilizare (Use-Case Diagram)
 Definește rolurile și permisiunile actorilor (Utilizatorul local, Clientul Web și Mediul controlat) în raport cu funcționalitățile software expuse de sistem.
 
-<img width="675" height="545" alt="diagrama_use-case" src="https://github.tuiasi.ro/user-attachments/assets/ac82bc33-b389-4a83-92ea-60ed5e53ebe5" />
+<img src="images/diagrama-use-case.png" width="600" alt="Diagrama use-case" />
 
 ### 3. Diagrama de Funcționare și Secvență (Sequence Diagram)
 Ilustrează interacțiunea asincronă bazată pe protocoale de tip Request-Response între browser și stiva lwIP a microcontrolerului, simultan cu actualizarea stării releului.
 
-<img width="1303" height="866" alt="diagramafunctioanare" src="https://github.tuiasi.ro/user-attachments/assets/15a7504f-7a7a-4cdd-8047-cff6163fa808" />
-
+<img src="images/diagrama-secventa.png" width="800" alt="Diagrama de secvență" />
 
 ### 4. Diagrama de Stări a Pompei (State Machine Diagram)
 Explică ciclul de viață al actuatorului hardware (pompa) și evenimentele de sistem care determină tranzițiile între modurile Repaus, Web, Manual și Automat.
 
-<img width="5800" height="1345" alt="diagramaSM2" src="https://github.tuiasi.ro/user-attachments/assets/d60fb01a-608b-46c5-b915-2db470520e6a" />
+<img src="images/diagrama-stari-pompa.png" width="100%" alt="Diagrama de stări a pompei" />
+
+---
 
 ## Ghid de Compilare și Rulare
 
@@ -100,36 +100,39 @@ Explică ciclul de viață al actuatorului hardware (pompa) și evenimentele de 
 #define WIFI_SSID "Numele_Retelei_Tale"
 #define WIFI_PASS "Parola_Retelei_Tale"
 ```
-### 📸 Capturi și Stări de Funcționare ale Proiectului
+
+---
+
+## 📸 Capturi și Stări de Funcționare ale Proiectului
 
 Această secțiune descrie comportamentul vizual real al sistemului pe hardware.
 
-* **Afișaj OLED (Ecran inițial de Boot):**
-  
-  <img src="https://github.tuiasi.ro/user-attachments/assets/ac010979-6288-4446-9284-78403c1c9f4f" width="300" alt="WhatsApp Image 2026-05-25 at 14 35 56" />
+**Afișaj OLED (Ecran inițial de Boot):**
 
-### După conectarea cu succes, utilizatorul poate naviga ciclic prin cele 4 pagini de stare apăsând butonul fizic **MENU (GPIO 14)**.
+<img src="images/oled-boot.jpg" width="300" alt="OLED - ecran de boot" />
 
-* **Faza imediat după conectarea la Wi-Fi:**
-  
-  <img src="https://github.tuiasi.ro/user-attachments/assets/990592c5-22cd-44b5-b20a-915722895281" width="300" alt="WhatsApp Image 2026-05-25 at 14 35 56 (1)" />
+**Faza imediat după conectarea la Wi-Fi:**
 
-##### Pagină 1: Status General (Ecranul Principal)
+<img src="images/oled-wifi-conectat.jpg" width="300" alt="OLED - conectat la Wi-Fi" />
+
+După conectarea cu succes, utilizatorul poate naviga ciclic prin cele 4 pagini de stare apăsând butonul fizic **MENU (GPIO 14)**.
+
+#### Pagina 1: Status General (Ecranul Principal)
 Afișează numele proiectului, adresa IP alocată (esențială pentru ca utilizatorul să știe ce să tasteze în browser) și starea curentă a releului.
 
-<img src="https://github.tuiasi.ro/user-attachments/assets/77760838-f171-40b3-9be0-442c5a154cf7" width="300" alt="WhatsApp Image 2026-05-25 at 14 35 56 (1)" />
+<img src="images/oled-pagina1-status.jpg" width="300" alt="OLED - pagina 1, status general" />
 
-#### Pagină 2: Status Date Udare 
+#### Pagina 2: Status Date Udare
 Afișează ultima udare și starea pompei.
 
-<img src="https://github.tuiasi.ro/user-attachments/assets/5fbfe100-29f0-4bfb-98e2-9c99bbac3097" width="300" alt="WhatsApp Image 2026-05-25 at 14 35 56 (2)" />
+<img src="images/oled-pagina2-udare.jpg" width="300" alt="OLED - pagina 2, date udare" />
 
-#### Pagină 3: Status Procent Umiditate 
+#### Pagina 3: Status Procent Umiditate
 Afișează procentul curent de umiditate citit din sol.
 
-<img src="https://github.tuiasi.ro/user-attachments/assets/df7e6aaa-1284-444a-9900-af32998017d4" width="300" alt="WhatsApp Image 2026-05-25 at 14 35 56 (3)" />
+<img src="images/oled-pagina3-umiditate.jpg" width="300" alt="OLED - pagina 3, umiditate" />
 
-#### Pagină 4: Status Procent Umiditate Auto 
-Afișează procentul de umiditate la care umiditatea solului trebuie să fie sub pentru ca pompa să pornească automat.
+#### Pagina 4: Status Procent Umiditate Auto
+Afișează pragul de umiditate sub care pompa pornește automat.
 
-<img src="https://github.tuiasi.ro/user-attachments/assets/a65eda0f-96a8-412c-96b1-542be51d6227" width="300" alt="WhatsApp Image 2026-05-25 at 14 35 571" />
+<img src="images/oled-pagina4-prag-auto.jpg" width="300" alt="OLED - pagina 4, prag udare automată" />
